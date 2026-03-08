@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Pixel</title>
+<link rel="icon" href="https://cdn-icons-png.freepik.com/256/5968/5968557.png?semt=ais_white_label" sizes="16×16" type="image/png" /> 
+<style>
+body{margin:0;font-family:Segoe UI,Arial;background:#f1f3f4;}
+#toolbar{background:#202124;color:white;padding:8px;display:flex;gap:6px;user-select: none;
+  -webkit-user-select: none;}
+button{padding:6px 10px;}
+#formulaBar{width:100%;padding:6px;font-size:16px;border:none;box-sizing:border-box;}
+#sheetWrap{overflow:auto;height:70vh;}
+table{border-collapse:collapse;background:white;border:1px solid #cfcfcf;table-layout:fixed;}
+th,td{border:1px solid #ccc;width:90px;height:28px;text-align:center;position:relative;}
+th{background:#f3f3f3;font-weight:normal;}
+td:hover{outline:1px solid #4a90e2;outline-offset:-1px;}
+input:focus{outline:2px solid #4a8cff;z-index:1;}
+input{width:100%;height:100%;border:none;outline:none;text-align:center;}
+.selected{background:#e8f0ff;outline:2px solid #4a8cff;outline-offset:-2px;}
+.col-resize{position:absolute;right:0;top:0;width:5px;height:100%;cursor:col-resize;}
+#sheets{display:flex;gap:5px;padding:6px;background:#ddd;}
+.sheetTab{background:white;padding:5px 10px;cursor:pointer;border:1px solid #aaa;}
+.activeSheet{background:#cfe2ff;}
+#functionPanel{position:fixed;right:20px;top:80px;width:260px;background:white;border:1px solid #aaa;padding:15px;display:none;box-shadow:0 5px 15px rgba(0,0,0,0.2);overflow:auto;max-height:70vh;}
+.func{margin-bottom:12px;font-size:14px;}
+</style>
+</head>
+<body>
+
+<div id="toolbar">
+<button onclick="addRow()">行+</button>
+<button onclick="addCol()">列+</button>
+<button onclick="undo()">Undo</button>
+<button onclick="redo()">Redo</button>
+<button onclick="addSheet()">シート+</button>
+<button onclick="deleteSheet()">シート削除</button>
+<button onclick="showFunctions()">関数</button>
+<button onclick="clearAll()">全削除</button>
+</div>
+
+<input id="formulaBar">
+
+<div id="sheetWrap">
+<table id="sheet"></table>
+</div>
+
+<div id="sheets"></div>
+
+<div id="functionPanel">
+<h3>関数一覧</h3>
+<div class="func"><b>SUM</b><br>=SUM(A1:A5)<br>範囲の合計</div>
+<div class="func"><b>AVERAGE</b><br>=AVERAGE(A1:A5)<br>平均</div>
+<div class="func"><b>MAX</b><br>=MAX(A1:A5)<br>最大値</div>
+<div class="func"><b>MIN</b><br>=MIN(A1:A5)<br>最小値</div>
+<div class="func"><b>COUNT</b><br>=COUNT(A1:A5)<br>数値セル数</div>
+<button onclick="hideFunctions()">閉じる</button>
+</div>
+
+<script>
+let rows=30, cols=15, colWidths=new Array(cols).fill(90);
+let sheets=[], currentSheet=0;
+let sheetNames=[];
+let selectedCell=null, selectedRange=[];
+let history=[], redoStack=[];
+const sheet=document.getElementById("sheet"), formulaBar=document.getElementById("formulaBar"), sheetTabs=document.getElementById("sheets");
+
+function colName(n){let s=""; while(n>=0){s=String.fromCharCode(n%26+65)+s; n=Math.floor(n/26)-1;} return s;}
+
+function initSheet(){
+  const data=[];
+  for(let r=0;r<rows;r++){
+    const row=[];
+    for(let c=0;c<cols;c++) row.push({formula:"",value:"",dependents:[]});
+    data.push(row);
+  }
+  sheets.push(data);
+  sheetNames.push("Sheet"+sheets.length);
+}
+function saveSheets(){
+  localStorage.setItem("excelJS_sheets", JSON.stringify(sheets))
+  localStorage.setItem("excelJS_sheetNames", JSON.stringify(sheetNames))
+  localStorage.setItem("excelJS_rows", rows)
+  localStorage.setItem("excelJS_cols", cols)
+  localStorage.setItem("excelJS_colWidths", JSON.stringify(colWidths))
+}
+function loadSheets(){
+  const s=localStorage.getItem("excelJS_sheets");
+  if(s){
+    sheets=JSON.parse(s);
+    sheetNames=JSON.parse(localStorage.getItem("excelJS_sheetNames")||"[]");
+    rows=parseInt(localStorage.getItem("excelJS_rows")||30);
+    cols=parseInt(localStorage.getItem("excelJS_cols")||15);
+    colWidths=JSON.parse(localStorage.getItem("excelJS_colWidths")||new Array(cols).fill(90));
+    return true;
+  }
+  return false;
+}
+// ---------- ビルド ----------
+function build(){
+  sheet.innerHTML="";
+  const header=document.createElement("tr");
+  header.appendChild(document.createElement("th"));
+  for(let c=0;c<cols;c++){
+    const th=document.createElement("th"); th.innerText=colName(c); th.style.width=colWidths[c]+"px";
+    const res=document.createElement("div"); res.className="col-resize"; let startX,startW;
+    res.onmousedown=e=>{
+      startX=e.pageX; startW=colWidths[c];
+      document.onmousemove=e2=>{
+        const newW=startW+(e2.pageX-startX);
+        colWidths[c]=newW;
+        for(let r=0;r<=rows;r++){
+          const row=sheet.rows[r];
+          if(row && row.cells[c+1]) row.cells[c+1].style.width=newW+"px";
+        }
+      };
+      document.onmouseup=()=>{document.onmousemove=null;}
+    }
+    th.appendChild(res); header.appendChild(th);
+  }
+  sheet.appendChild(header);
+
+  for(let r=0;r<rows;r++){
+    const tr=document.createElement("tr");
+    const th=document.createElement("th"); th.innerText=r+1; tr.appendChild(th);
+    for(let c=0;c<cols;c++){
+      const td=document.createElement("td"); td.style.width=colWidths[c]+"px";
+      const input=document.createElement("input"); input.dataset.r=r; input.dataset.c=c;
+      const cell=sheets[currentSheet][r][c]; input.value=cell.value;
+
+      input.onfocus=()=>{selectedCell=input; formulaBar.value=cell.formula;}
+      input.oninput=()=>{
+        recordHistory();
+        cell.formula=input.value;
+        updateCell(r,c);
+        saveSheets();
+      }
+      input.onmousedown=()=>{clearSelect(); selectedRange=[input]; td.classList.add("selected");}
+      input.onmouseover=e=>{if(e.buttons===1){selectedRange.push(input); td.classList.add("selected");}}
+      td.appendChild(input); tr.appendChild(td);
+    }
+    sheet.appendChild(tr);
+  }
+  buildTabs();
+}
+
+// ---------- タブ ----------
+function buildTabs(){
+  sheetTabs.innerHTML="";
+
+  sheets.forEach((s,i)=>{
+    const tab=document.createElement("div");
+    tab.className="sheetTab"+(i===currentSheet?" activeSheet":"");
+    tab.innerText=sheetNames[i] || "Sheet"+(i+1);
+    tab.draggable=true;
+
+    // シート切替
+    tab.onclick=()=>{
+      currentSheet=i;
+      build();
+      calculateAll();
+    };
+
+    // 名前変更（ダブルクリック）
+    tab.ondblclick=()=>{
+      const name=prompt("シート名を入力", sheetNames[i]);
+      if(name){
+        sheetNames[i]=name;
+        saveSheets();
+        buildTabs();
+      }
+    };
+
+    // ドラッグ開始
+    tab.ondragstart=e=>{
+      e.dataTransfer.setData("sheetIndex",i);
+    };
+
+    // ドロップ許可
+    tab.ondragover=e=>e.preventDefault();
+
+    // ドロップ並び替え
+    tab.ondrop=e=>{
+      const from=parseInt(e.dataTransfer.getData("sheetIndex"));
+      const to=i;
+
+      const sheetMove=sheets.splice(from,1)[0];
+      const nameMove=sheetNames.splice(from,1)[0];
+
+      sheets.splice(to,0,sheetMove);
+      sheetNames.splice(to,0,nameMove);
+
+      currentSheet=to;
+
+      build();
+      calculateAll();
+      saveSheets();
+    };
+
+    sheetTabs.appendChild(tab);
+  })
+}function deleteSheet(){
+  if(sheets.length === 1){
+    alert("最後のシートは削除できません");
+    return;
+  }
+
+  if(!confirm("このシートを削除しますか？")) return;
+
+  sheets.splice(currentSheet,1);
+
+  if(currentSheet >= sheets.length){
+    currentSheet = sheets.length - 1;
+  }
+
+  build();
+  calculateAll();
+  saveSheets();
+}
+// ---------- 操作 ----------
+function addSheet(){initSheet(); build(); saveSheets();}
+function clearSelect(){document.querySelectorAll(".selected").forEach(e=>e.classList.remove("selected")); selectedRange=[];}
+function getCell(r,c){return document.querySelector(`input[data-r="${r}"][data-c="${c}`);}
+function addRow(){rows++; sheets.forEach(s=>{const row=[]; for(let c=0;c<cols;c++) row.push({formula:"",value:"",dependents:[]}); s.push(row);}); build(); saveSheets();}
+function addCol(){cols++; colWidths.push(90); sheets.forEach(s=>s.forEach(r=>r.push({formula:"",value:"",dependents:[]}))); build(); saveSheets();}
+
+// ---------- 依存チェーン計算 ----------
+function parseCell(name){const col=name.match(/[A-Z]+/)[0]; const row=parseInt(name.match(/[0-9]+/)[0])-1; let c=0; for(let i=0;i<col.length;i++) c=c*26+(col.charCodeAt(i)-64); c--; return{r:row,c:c};}
+
+function getRange(a,b){
+  const nums=[];
+  for(let r=a.r;r<=b.r;r++){
+    for(let c=a.c;c<=b.c;c++){
+      const v=parseFloat(sheets[currentSheet][r][c].value);
+      if(!isNaN(v)) nums.push(v);
+      else nums.push(0); // 空セルは0扱い
+    }
+  }
+  return nums;
+}
+
+function updateCell(r,c, visited=new Set()){
+  const key=r+","+c;
+  if(visited.has(key)){ sheets[currentSheet][r][c].value="#循環"; return; }
+  visited.add(key);
+  const cell=sheets[currentSheet][r][c]; 
+  const f=cell.formula || ""; // undefined防止
+  if(!f.startsWith("=")){cell.value=f || "";} // 空文字なら ""
+  else{
+    try{
+      if(f.startsWith("=SUM(")){const p=f.slice(5,-1).split(":"); const n=getRange(parseCell(p[0]),parseCell(p[1])); cell.value=n.reduce((a,b)=>a+b,0);}
+      else if(f.startsWith("=AVERAGE(")){const p=f.slice(9,-1).split(":"); const n=getRange(parseCell(p[0]),parseCell(p[1])); cell.value=n.length? n.reduce((a,b)=>a+b,0)/n.length : 0;}
+      else if(f.startsWith("=MAX(")){const p=f.slice(5,-1).split(":"); const n=getRange(parseCell(p[0]),parseCell(p[1])); cell.value=n.length? Math.max(...n) : 0;}
+      else if(f.startsWith("=MIN(")){const p=f.slice(5,-1).split(":"); const n=getRange(parseCell(p[0]),parseCell(p[1])); cell.value=n.length? Math.min(...n) : 0;}
+      else if(f.startsWith("=COUNT(")){const p=f.slice(7,-1).split(":"); const n=getRange(parseCell(p[0]),parseCell(p[1])); cell.value=n.length;}
+      else{cell.value=f;}
+    }catch{cell.value="";}
+  }
+  const input=getCell(r,c); if(input && document.activeElement!==input) input.value=cell.value;
+}
+
+function calculateAll(){
+  for(let r=0;r<rows;r++){
+    for(let c=0;c<cols;c++){
+      updateCell(r,c,new Set());
+    }
+  }
+}
+
+formulaBar.oninput=()=>{
+  if(selectedCell){
+    const r=selectedCell.dataset.r, c=selectedCell.dataset.c;
+    sheets[currentSheet][r][c].formula=formulaBar.value;
+    updateCell(r,c);
+    saveSheets();
+  }
+}
+
+// ---------- 履歴 ----------
+function recordHistory(){history.push(JSON.stringify(sheets)); if(history.length>100) history.shift();}
+function undo(){if(history.length===0) return; redoStack.push(JSON.stringify(sheets)); sheets=JSON.parse(history.pop()); build(); calculateAll(); saveSheets();}
+function redo(){if(redoStack.length===0) return; history.push(JSON.stringify(sheets)); sheets=JSON.parse(redoStack.pop()); build(); calculateAll(); saveSheets();}
+function clearAll(){if(!confirm("全てのセルを削除しますか？")) return; sheets.forEach(s=>s.forEach(r=>{for(let c=0;c<r.length;c++) r[c]={formula:"",value:"",dependents:[]};})); build(); saveSheets();}
+
+// ---------- 関数パネル ----------
+function showFunctions(){document.getElementById("functionPanel").style.display="block";}
+function hideFunctions(){document.getElementById("functionPanel").style.display="none";}
+
+document.addEventListener("keydown",e=>{if(e.ctrlKey && e.key==="z") undo(); if(e.ctrlKey && e.key==="y") redo();});
+
+if(!loadSheets()) initSheet();
+build();
+calculateAll();
+</script>
+</body>
+</html>
