@@ -48,7 +48,7 @@ input{width:100%;height:100%;border:none;outline:none;text-align:center;}
 <div id="sheets"></div>
 
 <div id="functionPanel">
-<h3>関数一覧（使い方）</h3>
+<h3>関数一覧</h3>
 
 <h4>基本</h4>
 
@@ -60,44 +60,40 @@ input{width:100%;height:100%;border:none;outline:none;text-align:center;}
 
 <h4>数学</h4>
 
-<div class="func"><b>ABS</b><br>=ABS(-10)<br>絶対値</div>
+<div class="func"><b>ABS</b><br>=ABS(-5)<br>絶対値</div>
 <div class="func"><b>ROUND</b><br>=ROUND(3.6)<br>四捨五入</div>
 <div class="func"><b>FLOOR</b><br>=FLOOR(3.9)<br>切り捨て</div>
 <div class="func"><b>CEIL</b><br>=CEIL(3.1)<br>切り上げ</div>
-<div class="func"><b>POWER</b><br>=POWER(2,3)<br>べき乗</div>
 <div class="func"><b>SQRT</b><br>=SQRT(16)<br>平方根</div>
-<div class="func"><b>MOD</b><br>=MOD(10,3)<br>余り</div>
+<div class="func"><b>POWER</b><br>=POWER(2,3)<br>べき乗</div>
 <div class="func"><b>RAND</b><br>=RAND()<br>0〜1の乱数</div>
+<div class="func"><b>MOD</b><br>=MOD(10,3)<br>余り</div>
 
 <h4>文字</h4>
 
 <div class="func"><b>LEN</b><br>=LEN(Hello)<br>文字数</div>
 <div class="func"><b>UPPER</b><br>=UPPER(hello)<br>大文字</div>
 <div class="func"><b>LOWER</b><br>=LOWER(HELLO)<br>小文字</div>
-<div class="func"><b>CONCAT</b><br>=CONCAT(Hello,World)<br>文字結合</div>
+<div class="func"><b>CONCAT</b><br>=CONCAT(A1,B1)<br>文字結合</div>
 <div class="func"><b>LEFT</b><br>=LEFT(Hello,2)<br>左から取得</div>
 <div class="func"><b>RIGHT</b><br>=RIGHT(Hello,2)<br>右から取得</div>
 <div class="func"><b>MID</b><br>=MID(Hello,2,3)<br>途中取得</div>
-<div class="func"><b>REPEAT</b><br>=REPEAT(A,5)<br>文字繰り返し</div>
-<div class="func"><b>REVERSE</b><br>=REVERSE(Hello)<br>文字を逆にする</div>
+<div class="func"><b>TRIM</b><br>=TRIM(A1)<br>空白削除</div>
 
 <h4>論理</h4>
 
-<div class="func"><b>IF</b><br>=IF(5>3,OK,NG)<br>条件分岐</div>
-<div class="func"><b>AND</b><br>=AND(5>3,2>1)<br>両方true</div>
-<div class="func"><b>OR</b><br>=OR(5>3,1>2)<br>どちらかtrue</div>
-<div class="func"><b>NOT</b><br>=NOT(5>3)<br>true/false反転</div>
+<div class="func"><b>IF</b><br>=IF(A1>10,OK,NG)<br>条件分岐</div>
+<div class="func"><b>AND</b><br>=AND(A1>5,B1>5)<br>両方true</div>
+<div class="func"><b>OR</b><br>=OR(A1>5,B1>5)<br>どちらかtrue</div>
+<div class="func"><b>NOT</b><br>=NOT(A1>5)<br>true/false反転</div>
 
 <h4>日付</h4>
 
 <div class="func"><b>TODAY</b><br>=TODAY()<br>今日の日付</div>
 <div class="func"><b>NOW</b><br>=NOW()<br>現在の日時</div>
-<div class="func"><b>YEAR</b><br>=YEAR()<br>今年</div>
-<div class="func"><b>MONTH</b><br>=MONTH()<br>今月</div>
-<div class="func"><b>DAY</b><br>=DAY()<br>今日の日</div>
-<div class="func"><b>HOUR</b><br>=HOUR()<br>現在の時間</div>
-<div class="func"><b>MINUTE</b><br>=MINUTE()<br>現在の分</div>
-<div class="func"><b>SECOND</b><br>=SECOND()<br>現在の秒</div>
+<div class="func"><b>YEAR</b><br>=YEAR(NOW())<br>年</div>
+<div class="func"><b>MONTH</b><br>=MONTH(NOW())<br>月</div>
+<div class="func"><b>DAY</b><br>=DAY(NOW())<br>日</div>
 
 <h4>統計</h4>
 
@@ -118,69 +114,7 @@ let history=[], redoStack=[];
 const sheet=document.getElementById("sheet"), formulaBar=document.getElementById("formulaBar"), sheetTabs=document.getElementById("sheets");
 
 function colName(n){let s=""; while(n>=0){s=String.fromCharCode(n%26+65)+s; n=Math.floor(n/26)-1;} return s;}
-const ExcelFunctions={};
 
-// ---------- 数学 ----------
-ExcelFunctions.SUM=(...a)=>a.flat().reduce((x,y)=>x+Number(y||0),0);
-ExcelFunctions.PRODUCT=(...a)=>a.flat().reduce((x,y)=>x*y,1);
-ExcelFunctions.ABS=x=>Math.abs(x);
-ExcelFunctions.SQRT=x=>Math.sqrt(x);
-ExcelFunctions.POWER=(a,b)=>Math.pow(a,b);
-ExcelFunctions.MOD=(a,b)=>a%b;
-ExcelFunctions.PI=()=>Math.PI;
-ExcelFunctions.RAND=()=>Math.random();
-ExcelFunctions.ROUND=(x,n=0)=>Number(x.toFixed(n));
-ExcelFunctions.FLOOR=x=>Math.floor(x);
-ExcelFunctions.CEIL=x=>Math.ceil(x);
-ExcelFunctions.SIN=x=>Math.sin(x);
-ExcelFunctions.COS=x=>Math.cos(x);
-ExcelFunctions.TAN=x=>Math.tan(x);
-ExcelFunctions.LOG=x=>Math.log10(x);
-ExcelFunctions.LN=x=>Math.log(x);
-
-// ---------- 統計 ----------
-ExcelFunctions.AVERAGE=(...a)=>{
-const v=a.flat().map(Number);
-return v.reduce((x,y)=>x+y,0)/v.length;
-};
-ExcelFunctions.MAX=(...a)=>Math.max(...a.flat());
-ExcelFunctions.MIN=(...a)=>Math.min(...a.flat());
-ExcelFunctions.COUNT=(...a)=>a.flat().filter(v=>!isNaN(v)).length;
-ExcelFunctions.MEDIAN=(...a)=>{
-const v=a.flat().sort((a,b)=>a-b);
-const m=Math.floor(v.length/2);
-return v.length%2?v[m]:(v[m-1]+v[m])/2;
-};
-
-// ---------- 文字 ----------
-ExcelFunctions.LEN=x=>String(x).length;
-ExcelFunctions.UPPER=x=>String(x).toUpperCase();
-ExcelFunctions.LOWER=x=>String(x).toLowerCase();
-ExcelFunctions.CONCAT=(...a)=>a.join("");
-ExcelFunctions.LEFT=(t,n)=>String(t).substring(0,n);
-ExcelFunctions.RIGHT=(t,n)=>String(t).slice(-n);
-ExcelFunctions.MID=(t,s,l)=>String(t).substring(s-1,s-1+l);
-ExcelFunctions.TRIM=x=>String(x).trim();
-ExcelFunctions.REPEAT=(t,n)=>String(t).repeat(n);
-
-// ---------- 論理 ----------
-ExcelFunctions.IF=(c,a,b)=>c?a:b;
-ExcelFunctions.AND=(...a)=>a.every(v=>v);
-ExcelFunctions.OR=(...a)=>a.some(v=>v);
-ExcelFunctions.NOT=x=>!x;
-
-// ---------- 日付 ----------
-ExcelFunctions.TODAY=()=>new Date().toLocaleDateString();
-ExcelFunctions.NOW=()=>new Date().toLocaleString();
-ExcelFunctions.YEAR=()=>new Date().getFullYear();
-ExcelFunctions.MONTH=()=>new Date().getMonth()+1;
-ExcelFunctions.DAY=()=>new Date().getDate();
-ExcelFunctions.HOUR=()=>new Date().getHours();
-ExcelFunctions.MINUTE=()=>new Date().getMinutes();
-ExcelFunctions.SECOND=()=>new Date().getSeconds();
-for(let i=1;i<=250;i++){
-ExcelFunctions["FUNC"+i]=(...a)=>a.reduce((x,y)=>Number(x)+Number(y||0),0);
-}
 function initSheet(){
   const data=[];
   for(let r=0;r<rows;r++){
@@ -352,14 +286,7 @@ function getRange(a,b){
   }
   return nums;
 }
-function evaluateExpression(expr){
-  return expr.replace(/[A-Z]+[0-9]+/g,(ref)=>{
-    const pos=parseCell(ref);
-    const cell=sheets[currentSheet][pos.r][pos.c];
-    const v=parseFloat(cell.value);
-    return isNaN(v)?0:v;
-  });
-}
+
 function updateCell(r,c, visited=new Set()){
   const key=r+","+c;
   if(visited.has(key)){ sheets[currentSheet][r][c].value="#循環"; return; }
@@ -374,7 +301,7 @@ function updateCell(r,c, visited=new Set()){
       else if(f.startsWith("=MAX(")){const p=f.slice(5,-1).split(":"); const n=getRange(parseCell(p[0]),parseCell(p[1])); cell.value=n.length? Math.max(...n) : 0;}
       else if(f.startsWith("=MIN(")){const p=f.slice(5,-1).split(":"); const n=getRange(parseCell(p[0]),parseCell(p[1])); cell.value=n.length? Math.min(...n) : 0;}
       else if(f.startsWith("=COUNT(")){const p=f.slice(7,-1).split(":"); const n=getRange(parseCell(p[0]),parseCell(p[1])); cell.value=n.length;}
-    else if(f.startsWith("=ABS(")){
+        else if(f.startsWith("=ABS(")){
   const v=parseFloat(f.slice(5,-1));
   cell.value=Math.abs(v);
 }
@@ -578,114 +505,7 @@ else if(f.startsWith("=VAR(")){
   const avg=nums.reduce((a,b)=>a+b,0)/nums.length;
   cell.value=nums.reduce((a,b)=>a+(b-avg)**2,0)/nums.length;
 }
-
-// ---------- 条件 ----------
-else if(f.startsWith("=IFERROR(")){
-  const p=f.slice(9,-1).split(",");
-  try{
-    cell.value=eval(evaluateExpression(p[0]));
-  }catch{
-    cell.value=p[1];
-  }
-}
-
-// ---------- 条件集計 ----------
-else if(f.startsWith("=SUMIF(")){
-  const p=f.slice(7,-1).split(",");
-  const range=p[0].split(":");
-  const cond=p[1];
-  const nums=getRange(parseCell(range[0]),parseCell(range[1]));
-  let sum=0;
-  nums.forEach(n=>{if(eval(n+cond)) sum+=n;});
-  cell.value=sum;
-}
-
-else if(f.startsWith("=COUNTIF(")){
-  const p=f.slice(9,-1).split(",");
-  const range=p[0].split(":");
-  const cond=p[1];
-  const nums=getRange(parseCell(range[0]),parseCell(range[1]));
-  let count=0;
-  nums.forEach(n=>{if(eval(n+cond)) count++;});
-  cell.value=count;
-}
-
-// ---------- 数学 ----------
-else if(f.startsWith("=PRODUCT(")){
-  const p=f.slice(9,-1).split(":");
-  const nums=getRange(parseCell(p[0]),parseCell(p[1]));
-  cell.value=nums.reduce((a,b)=>a*b,1);
-}
-
-else if(f.startsWith("=FACT(")){
-  const n=parseInt(f.slice(6,-1));
-  let r=1;
-  for(let i=1;i<=n;i++) r*=i;
-  cell.value=r;
-}
-
-else if(f.startsWith("=PI(")){
-  cell.value=Math.PI;
-}
-
-else if(f.startsWith("=RADIANS(")){
-  const v=parseFloat(f.slice(9,-1));
-  cell.value=v*(Math.PI/180);
-}
-
-else if(f.startsWith("=DEGREES(")){
-  const v=parseFloat(f.slice(9,-1));
-  cell.value=v*(180/Math.PI);
-}
-
-// ---------- 文字 ----------
-else if(f.startsWith("=TRIM(")){
-  const t=f.slice(6,-1);
-  cell.value=t.trim();
-}
-
-else if(f.startsWith("=SUBSTITUTE(")){
-  const p=f.slice(11,-1).split(",");
-  cell.value=p[0].split(p[1]).join(p[2]);
-}
-
-else if(f.startsWith("=SEARCH(")){
-  const p=f.slice(7,-1).split(",");
-  cell.value=p[1].indexOf(p[0])+1;
-}
-
-// ---------- 日付 ----------
-else if(f.startsWith("=WEEKDAY(")){
-  const d=new Date();
-  cell.value=d.getDay()+1;
-}
-
-else if(f.startsWith("=DAYS(")){
-  const p=f.slice(5,-1).split(",");
-  const d1=new Date(p[0]);
-  const d2=new Date(p[1]);
-  cell.value=Math.floor((d1-d2)/(1000*60*60*24));
-}
-      else{
-  try{
-
-let expr=f.substring(1);
-
-expr=expr.replace(/[A-Z]+[0-9]+/g,(ref)=>{
-const pos=parseCell(ref);
-return parseFloat(sheets[currentSheet][pos.r][pos.c].value)||0;
-});
-
-for(const fn in ExcelFunctions){
-expr=expr.replaceAll(fn,`ExcelFunctions.${fn}`);
-}
-
-cell.value=eval(expr);
-
-}catch{
-cell.value="";
-}
-}
+      else{cell.value=f;}
     }catch{cell.value="";}
   }
   const input=getCell(r,c); if(input && document.activeElement!==input) input.value=cell.value;
