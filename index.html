@@ -49,11 +49,64 @@ input{width:100%;height:100%;border:none;outline:none;text-align:center;}
 
 <div id="functionPanel">
 <h3>関数一覧</h3>
+
+<h4>基本</h4>
+
 <div class="func"><b>SUM</b><br>=SUM(A1:A5)<br>範囲の合計</div>
 <div class="func"><b>AVERAGE</b><br>=AVERAGE(A1:A5)<br>平均</div>
 <div class="func"><b>MAX</b><br>=MAX(A1:A5)<br>最大値</div>
 <div class="func"><b>MIN</b><br>=MIN(A1:A5)<br>最小値</div>
 <div class="func"><b>COUNT</b><br>=COUNT(A1:A5)<br>数値セル数</div>
+
+<h4>数学</h4>
+
+<div class="func"><b>ABS</b><br>=ABS(-5)<br>絶対値</div>
+<div class="func"><b>ROUND</b><br>=ROUND(3.6)<br>四捨五入</div>
+<div class="func"><b>FLOOR</b><br>=FLOOR(3.9)<br>切り捨て</div>
+<div class="func"><b>CEIL</b><br>=CEIL(3.1)<br>切り上げ</div>
+<div class="func"><b>SQRT</b><br>=SQRT(16)<br>平方根</div>
+<div class="func"><b>POWER</b><br>=POWER(2,3)<br>べき乗</div>
+<div class="func"><b>RAND</b><br>=RAND()<br>0〜1の乱数</div>
+<div class="func"><b>MOD</b><br>=MOD(10,3)<br>余り</div>
+
+<h4>文字</h4>
+
+<div class="func"><b>LEN</b><br>=LEN(Hello)<br>文字数</div>
+<div class="func"><b>UPPER</b><br>=UPPER(hello)<br>大文字</div>
+<div class="func"><b>LOWER</b><br>=LOWER(HELLO)<br>小文字</div>
+<div class="func"><b>CONCAT</b><br>=CONCAT(A1,B1)<br>文字結合</div>
+<div class="func"><b>LEFT</b><br>=LEFT(Hello,2)<br>左から取得</div>
+<div class="func"><b>RIGHT</b><br>=RIGHT(Hello,2)<br>右から取得</div>
+<div class="func"><b>MID</b><br>=MID(Hello,2,3)<br>途中取得</div>
+<div class="func"><b>TRIM</b><br>=TRIM(A1)<br>空白削除</div>
+
+<h4>論理</h4>
+
+<div class="func"><b>IF</b><br>=IF(A1>10,OK,NG)<br>条件分岐</div>
+<div class="func"><b>AND</b><br>=AND(A1>5,B1>5)<br>両方true</div>
+<div class="func"><b>OR</b><br>=OR(A1>5,B1>5)<br>どちらかtrue</div>
+<div class="func"><b>NOT</b><br>=NOT(A1>5)<br>true/false反転</div>
+
+<h4>日付</h4>
+
+<div class="func"><b>TODAY</b><br>=TODAY()<br>今日の日付</div>
+<div class="func"><b>NOW</b><br>=NOW()<br>現在の日時</div>
+<div class="func"><b>YEAR</b><br>=YEAR(NOW())<br>年</div>
+<div class="func"><b>MONTH</b><br>=MONTH(NOW())<br>月</div>
+<div class="func"><b>DAY</b><br>=DAY(NOW())<br>日</div>
+
+<h4>統計</h4>
+
+<div class="func"><b>MEDIAN</b><br>=MEDIAN(A1:A10)<br>中央値</div>
+<div class="func"><b>MODE</b><br>=MODE(A1:A10)<br>最頻値</div>
+<div class="func"><b>STDEV</b><br>=STDEV(A1:A10)<br>標準偏差</div>
+<div class="func"><b>VAR</b><br>=VAR(A1:A10)<br>分散</div>
+
+<h4>検索</h4>
+
+<div class="func"><b>VLOOKUP</b><br>=VLOOKUP(A1,B1:C10,2)<br>縦検索</div>
+<div class="func"><b>HLOOKUP</b><br>=HLOOKUP(A1,B1:C10,2)<br>横検索</div>
+
 <button onclick="hideFunctions()">閉じる</button>
 </div>
 
@@ -253,6 +306,210 @@ function updateCell(r,c, visited=new Set()){
       else if(f.startsWith("=MAX(")){const p=f.slice(5,-1).split(":"); const n=getRange(parseCell(p[0]),parseCell(p[1])); cell.value=n.length? Math.max(...n) : 0;}
       else if(f.startsWith("=MIN(")){const p=f.slice(5,-1).split(":"); const n=getRange(parseCell(p[0]),parseCell(p[1])); cell.value=n.length? Math.min(...n) : 0;}
       else if(f.startsWith("=COUNT(")){const p=f.slice(7,-1).split(":"); const n=getRange(parseCell(p[0]),parseCell(p[1])); cell.value=n.length;}
+        else if(f.startsWith("=ABS(")){
+  const v=parseFloat(f.slice(5,-1));
+  cell.value=Math.abs(v);
+}
+
+else if(f.startsWith("=ROUND(")){
+  const p=f.slice(7,-1).split(",");
+  cell.value=Math.round(parseFloat(p[0]));
+}
+
+else if(f.startsWith("=SQRT(")){
+  const v=parseFloat(f.slice(6,-1));
+  cell.value=Math.sqrt(v);
+}
+
+else if(f.startsWith("=POWER(")){
+  const p=f.slice(7,-1).split(",");
+  cell.value=Math.pow(parseFloat(p[0]),parseFloat(p[1]));
+}
+
+else if(f.startsWith("=RAND(")){
+  cell.value=Math.random();
+}
+
+else if(f.startsWith("=LEN(")){
+  const t=f.slice(5,-1);
+  cell.value=t.length;
+}
+
+else if(f.startsWith("=UPPER(")){
+  const t=f.slice(7,-1);
+  cell.value=t.toUpperCase();
+}
+
+else if(f.startsWith("=LOWER(")){
+  const t=f.slice(7,-1);
+  cell.value=t.toLowerCase();
+}
+
+else if(f.startsWith("=CONCAT(")){
+  const p=f.slice(8,-1).split(",");
+  cell.value=p.join("");
+}
+
+else if(f.startsWith("=IF(")){
+  const p=f.slice(4,-1).split(",");
+  cell.value=eval(p[0]) ? p[1] : p[2];
+}
+
+else if(f.startsWith("=AND(")){
+  const p=f.slice(5,-1).split(",");
+  cell.value=p.every(v=>eval(v));
+}
+
+else if(f.startsWith("=OR(")){
+  const p=f.slice(4,-1).split(",");
+  cell.value=p.some(v=>eval(v));
+}
+
+else if(f.startsWith("=NOT(")){
+  const v=f.slice(5,-1);
+  cell.value=!eval(v);
+}
+
+else if(f.startsWith("=TODAY(")){
+  cell.value=new Date().toLocaleDateString();
+}
+
+else if(f.startsWith("=NOW(")){
+  cell.value=new Date().toLocaleString();
+}
+// ---------- 数学 ----------
+else if(f.startsWith("=FLOOR(")){
+  const v=parseFloat(f.slice(7,-1));
+  cell.value=Math.floor(v);
+}
+
+else if(f.startsWith("=CEIL(")){
+  const v=parseFloat(f.slice(6,-1));
+  cell.value=Math.ceil(v);
+}
+
+else if(f.startsWith("=MOD(")){
+  const p=f.slice(5,-1).split(",");
+  cell.value=parseFloat(p[0])%parseFloat(p[1]);
+}
+
+else if(f.startsWith("=SIN(")){
+  const v=parseFloat(f.slice(5,-1));
+  cell.value=Math.sin(v);
+}
+
+else if(f.startsWith("=COS(")){
+  const v=parseFloat(f.slice(5,-1));
+  cell.value=Math.cos(v);
+}
+
+else if(f.startsWith("=TAN(")){
+  const v=parseFloat(f.slice(5,-1));
+  cell.value=Math.tan(v);
+}
+
+else if(f.startsWith("=LOG(")){
+  const v=parseFloat(f.slice(5,-1));
+  cell.value=Math.log10(v);
+}
+
+else if(f.startsWith("=LN(")){
+  const v=parseFloat(f.slice(4,-1));
+  cell.value=Math.log(v);
+}
+
+// ---------- 文字 ----------
+else if(f.startsWith("=LEFT(")){
+  const p=f.slice(6,-1).split(",");
+  cell.value=p[0].substring(0,parseInt(p[1]));
+}
+
+else if(f.startsWith("=RIGHT(")){
+  const p=f.slice(7,-1).split(",");
+  const text=p[0];
+  const n=parseInt(p[1]);
+  cell.value=text.substring(text.length-n);
+}
+
+else if(f.startsWith("=MID(")){
+  const p=f.slice(5,-1).split(",");
+  const text=p[0];
+  const start=parseInt(p[1])-1;
+  const len=parseInt(p[2]);
+  cell.value=text.substring(start,start+len);
+}
+
+else if(f.startsWith("=REPEAT(")){
+  const p=f.slice(8,-1).split(",");
+  cell.value=p[0].repeat(parseInt(p[1]));
+}
+
+else if(f.startsWith("=REVERSE(")){
+  const t=f.slice(9,-1);
+  cell.value=t.split("").reverse().join("");
+}
+
+// ---------- 日付 ----------
+else if(f.startsWith("=YEAR(")){
+  const d=new Date();
+  cell.value=d.getFullYear();
+}
+
+else if(f.startsWith("=MONTH(")){
+  const d=new Date();
+  cell.value=d.getMonth()+1;
+}
+
+else if(f.startsWith("=DAY(")){
+  const d=new Date();
+  cell.value=d.getDate();
+}
+
+else if(f.startsWith("=HOUR(")){
+  const d=new Date();
+  cell.value=d.getHours();
+}
+
+else if(f.startsWith("=MINUTE(")){
+  const d=new Date();
+  cell.value=d.getMinutes();
+}
+
+else if(f.startsWith("=SECOND(")){
+  const d=new Date();
+  cell.value=d.getSeconds();
+}
+
+// ---------- 統計 ----------
+else if(f.startsWith("=MEDIAN(")){
+  const p=f.slice(8,-1).split(":");
+  const nums=getRange(parseCell(p[0]),parseCell(p[1])).sort((a,b)=>a-b);
+  const mid=Math.floor(nums.length/2);
+  cell.value=nums.length%2 ? nums[mid] : (nums[mid-1]+nums[mid])/2;
+}
+
+else if(f.startsWith("=MODE(")){
+  const p=f.slice(6,-1).split(":");
+  const nums=getRange(parseCell(p[0]),parseCell(p[1]));
+  const map={};
+  nums.forEach(n=>map[n]=(map[n]||0)+1);
+  cell.value=Object.keys(map).reduce((a,b)=>map[a]>map[b]?a:b);
+}
+
+else if(f.startsWith("=STDEV(")){
+  const p=f.slice(7,-1).split(":");
+  const nums=getRange(parseCell(p[0]),parseCell(p[1]));
+  const avg=nums.reduce((a,b)=>a+b,0)/nums.length;
+  const variance=nums.reduce((a,b)=>a+(b-avg)**2,0)/nums.length;
+  cell.value=Math.sqrt(variance);
+}
+
+else if(f.startsWith("=VAR(")){
+  const p=f.slice(5,-1).split(":");
+  const nums=getRange(parseCell(p[0]),parseCell(p[1]));
+  const avg=nums.reduce((a,b)=>a+b,0)/nums.length;
+  cell.value=nums.reduce((a,b)=>a+(b-avg)**2,0)/nums.length;
+}
       else{cell.value=f;}
     }catch{cell.value="";}
   }
