@@ -49,7 +49,9 @@ padding-bottom:3px;
 <div id="sheetWrap">
 <table id="sheet"></table>
 </div>
-
+<td class="cell" contenteditable data-row="1" data-col="1"></td>
+<td class="cell" contenteditable data-row="1" data-col="2"></td>
+<td class="cell" contenteditable data-row="1" data-col="3"></td>
 <div id="sheets"></div>
 
 <!--<div id="functionPanel">
@@ -787,6 +789,32 @@ saveSheets();
 
 }
 
+});
+document.addEventListener("keydown", function(e){
+    const active = document.activeElement;
+    if(active.tagName !== "INPUT" || !active.dataset.r) return; // input でなければ無視
+
+    let r = parseInt(active.dataset.r);
+    let c = parseInt(active.dataset.c);
+    let next = null;
+
+    switch(e.key){
+        case "ArrowUp": r--; break;
+        case "ArrowDown": r++; break;
+        case "ArrowLeft": c--; break;
+        case "ArrowRight": c++; break;
+        default: return; // 矢印キー以外は無視
+    }
+
+    if(r>=0 && r<rows && c>=0 && c<cols){
+        next = document.querySelector(`input[data-r="${r}"][data-c="${c}"]`);
+    }
+
+    if(next){
+        e.preventDefault();
+        next.focus();
+        selectedCell = next;
+    }
 });
 </script>
 </body>
