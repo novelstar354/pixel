@@ -24,6 +24,11 @@ input{width:100%;height:100%;border:none;outline:none;text-align:center;}
 .activeSheet{background:#cfe2ff;}
 #functionPanel{position:fixed;right:20px;top:80px;width:260px;background:white;border:1px solid #aaa;padding:15px;display:none;box-shadow:0 5px 15px rgba(0,0,0,0.2);overflow:auto;max-height:70vh;}
 .func{margin-bottom:12px;font-size:14px;}
+#functionPanel h4{
+margin-top:15px;
+border-bottom:1px solid #ddd;
+padding-bottom:3px;
+}
 </style>
 </head>
 <body>
@@ -47,7 +52,8 @@ input{width:100%;height:100%;border:none;outline:none;text-align:center;}
 
 <div id="sheets"></div>
 
-<div id="functionPanel">
+<!--<div id="functionPanel">
+
 <h3>関数一覧</h3>
 
 <h4>基本</h4>
@@ -104,6 +110,12 @@ input{width:100%;height:100%;border:none;outline:none;text-align:center;}
 
 <button onclick="hideFunctions()">閉じる</button>
 </div>
+-->
+<div id="functionPanel">
+<h3>関数一覧</h3>
+<div id="functionList"></div>
+<button onclick="hideFunctions()">閉じる</button>
+</div>
 
 <script>
 let rows=30, cols=15, colWidths=new Array(cols).fill(90);
@@ -112,6 +124,79 @@ let sheetNames=[];
 let selectedCell=null, selectedRange=[];
 let history=[], redoStack=[];
 const sheet=document.getElementById("sheet"), formulaBar=document.getElementById("formulaBar"), sheetTabs=document.getElementById("sheets");
+
+const functions=[
+
+["基本","SUM","=SUM(A1:A5)","合計"],
+["基本","AVERAGE","=AVERAGE(A1:A5)","平均"],
+["基本","MAX","=MAX(A1:A5)","最大値"],
+["基本","MIN","=MIN(A1:A5)","最小値"],
+["基本","COUNT","=COUNT(A1:A5)","数値数"],
+
+["数学","ABS","=ABS(-5)","絶対値"],
+["数学","ROUND","=ROUND(3.6)","四捨五入"],
+["数学","SQRT","=SQRT(16)","平方根"],
+["数学","POWER","=POWER(2,3)","べき乗"],
+
+["文字","LEN","=LEN(text)","文字数"],
+["文字","UPPER","=UPPER(text)","大文字"],
+["文字","LOWER","=LOWER(text)","小文字"],
+
+["論理","IF","=IF(A1>10,OK,NG)","条件分岐"],
+["論理","AND","=AND(A1>5,B1>5)","AND"],
+["論理","OR","=OR(A1>5,B1>5)","OR"],
+
+["日付","TODAY","=TODAY()","今日"],
+["日付","NOW","=NOW()","現在時刻"],
+
+["統計","MEDIAN","=MEDIAN(A1:A10)","中央値"],
+["統計","MODE","=MODE(A1:A10)","最頻値"],
+["統計","STDEV","=STDEV(A1:A10)","標準偏差"],
+
+["検索","VLOOKUP","=VLOOKUP(value,A1:C10,2)","検索"],
+["検索","XLOOKUP","=XLOOKUP(value,A:A,B:B)","検索"]
+
+];
+
+function buildFunctionPanel(){
+
+const panel=document.getElementById("functionList");
+panel.innerHTML="";
+
+let currentCategory="";
+
+functions.forEach(f=>{
+
+const category=f[0];
+const name=f[1];
+const example=f[2];
+const desc=f[3];
+
+if(category!==currentCategory){
+
+const h=document.createElement("h4");
+h.textContent=category;
+panel.appendChild(h);
+
+currentCategory=category;
+
+}
+
+const div=document.createElement("div");
+div.className="func";
+
+div.innerHTML=
+"<b>"+name+"</b><br>"+
+example+"<br>"+
+desc;
+
+panel.appendChild(div);
+
+});
+
+}
+
+buildFunctionPanel();
 
 function colName(n){let s=""; while(n>=0){s=String.fromCharCode(n%26+65)+s; n=Math.floor(n/26)-1;} return s;}
 
@@ -178,11 +263,11 @@ function build(){
 
       input.onfocus=()=>{selectedCell=input; formulaBar.value=cell.formula;}
       input.oninput=()=>{
-        recordHistory();
-        cell.formula=input.value;
-        updateCell(r,c);
-        saveSheets();
-      }
+cell.formula=input.value;
+updateCell(r,c);
+calculateAll();   // 追加
+saveSheets();
+}
       input.onmousedown=()=>{clearSelect(); selectedRange=[input]; td.classList.add("selected");}
       input.onmouseover=e=>{if(e.buttons===1){selectedRange.push(input); td.classList.add("selected");}}
       td.appendChild(input); tr.appendChild(td);
@@ -208,7 +293,18 @@ function buildTabs(){
       build();
       calculateAll();
     };
+    tab.oncontextmenu=(e)=>{
+e.preventDefault();
 
+const name=prompt("シート名を入力",sheetNames[i]);
+
+if(name){
+sheetNames[i]=name;
+saveSheets();
+buildTabs();
+}
+
+}
     // 名前変更（ダブルクリック）
     tab.ondblclick=()=>{
       const name=prompt("シート名を入力", sheetNames[i]);
@@ -372,6 +468,40 @@ else if(f.startsWith("=TODAY(")){
 else if(f.startsWith("=NOW(")){
   cell.value=new Date().toLocaleString();
 }
+else if(f.startsWith("=SUMIF(")){
+const p=f.slice(7,-1).split(",");
+const range=getRange(parseCell(p[0]),parseCell(p[1]));
+cell.value=range.filter(v=>v>parseFloat(p[2])).reduce((a,b)=>a+b,0);
+}
+
+else if(f.startsWith("=PRODUCT(")){
+const p=f.slice(9,-1).split(":");
+const nums=getRange(parseCell(p[0]),parseCell(p[1]));
+cell.value=nums.reduce((a,b)=>a*b,1);
+}
+
+else if(f.startsWith("=RANDOMINT(")){
+const p=f.slice(11,-1).split(",");
+cell.value=Math.floor(Math.random()*(p[1]-p[0]+1))+parseInt(p[0]);
+}
+
+else if(f.startsWith("=DISTANCE(")){
+const p=f.slice(9,-1).split(",");
+const dx=parseFloat(p[0])-parseFloat(p[2]);
+const dy=parseFloat(p[1])-parseFloat(p[3]);
+cell.value=Math.sqrt(dx*dx+dy*dy);
+}
+
+else if(f.startsWith("=PERCENT(")){
+const p=f.slice(8,-1).split(",");
+cell.value=(parseFloat(p[0])/parseFloat(p[1]))*100;
+}
+
+else if(f.startsWith("=CLAMP(")){
+const p=f.slice(6,-1).split(",");
+const v=parseFloat(p[0]);
+cell.value=Math.min(Math.max(v,parseFloat(p[1])),parseFloat(p[2]));
+}
 // ---------- 数学 ----------
 else if(f.startsWith("=FLOOR(")){
   const v=parseFloat(f.slice(7,-1));
@@ -498,14 +628,58 @@ else if(f.startsWith("=STDEV(")){
   const variance=nums.reduce((a,b)=>a+(b-avg)**2,0)/nums.length;
   cell.value=Math.sqrt(variance);
 }
+else if(f.startsWith("=VLOOKUP(")){
+const p=f.slice(9,-1).split(",");
+
+const value=parseFloat(p[0]);
+const range=p[1].split(":");
+
+const start=parseCell(range[0]);
+const end=parseCell(range[1]);
+
+const col=parseInt(p[2])-1;
+
+for(let r=start.r;r<=end.r;r++){
+if(parseFloat(sheets[currentSheet][r][start.c].value)==value){
+cell.value=sheets[currentSheet][r][start.c+col].value;
+break;
+}
+}
+}
+else if(f.startsWith("=XLOOKUP(")){
+const p=f.slice(9,-1).split(",");
+
+const value=parseFloat(p[0]);
+
+const lookup=parseCell(p[1]);
+const result=parseCell(p[2]);
+
+for(let r=0;r<rows;r++){
+if(parseFloat(sheets[currentSheet][r][lookup.c].value)==value){
+cell.value=sheets[currentSheet][r][result.c].value;
+break;
+}
+}
+}
 
 else if(f.startsWith("=VAR(")){
   const p=f.slice(5,-1).split(":");
   const nums=getRange(parseCell(p[0]),parseCell(p[1]));
   const avg=nums.reduce((a,b)=>a+b,0)/nums.length;
   cell.value=nums.reduce((a,b)=>a+(b-avg)**2,0)/nums.length;
+}else{
+
+let expr=f.slice(1);
+
+// セル参照置き換え
+expr=expr.replace(/[A-Z]+[0-9]+/g,(ref)=>{
+const pos=parseCell(ref);
+return sheets[currentSheet][pos.r][pos.c].value || 0;
+});
+
+cell.value=eval(expr);
+
 }
-      else{cell.value=f;}
     }catch{cell.value="";}
   }
   const input=getCell(r,c); if(input && document.activeElement!==input) input.value=cell.value;
@@ -538,11 +712,82 @@ function clearAll(){if(!confirm("全てのセルを削除しますか？")) retu
 function showFunctions(){document.getElementById("functionPanel").style.display="block";}
 function hideFunctions(){document.getElementById("functionPanel").style.display="none";}
 
-document.addEventListener("keydown",e=>{if(e.ctrlKey && e.key==="z") undo(); if(e.ctrlKey && e.key==="y") redo();});
+document.addEventListener("keydown",e=>{
+
+if(e.ctrlKey && e.key==="z") undo();
+if(e.ctrlKey && e.key==="y") redo();
+
+if(e.key==="Enter" && selectedCell){
+
+e.preventDefault();
+
+let r=parseInt(selectedCell.dataset.r);
+let c=parseInt(selectedCell.dataset.c);
+
+r++;
+
+if(r>=rows){
+addRow();
+}
+
+const next=getCell(r,c);
+
+if(next){
+next.focus();
+selectedCell=next;
+}
+
+}
+
+});
 
 if(!loadSheets()) initSheet();
 build();
 calculateAll();
+let clipboard=null;
+
+document.addEventListener("keydown",e=>{
+
+// コピー
+if(e.ctrlKey && e.key==="c" && selectedRange.length){
+
+clipboard=selectedRange.map(c=>{
+return {
+r:parseInt(c.dataset.r),
+c:parseInt(c.dataset.c),
+data:JSON.parse(JSON.stringify(
+sheets[currentSheet][c.dataset.r][c.dataset.c]
+))
+};
+
+});
+
+}
+
+// 貼り付け
+if(e.ctrlKey && e.key==="v" && clipboard && selectedCell){
+
+let baseR=parseInt(selectedCell.dataset.r);
+let baseC=parseInt(selectedCell.dataset.c);
+
+clipboard.forEach(item=>{
+
+const r=baseR+(item.r-clipboard[0].r);
+const c=baseC+(item.c-clipboard[0].c);
+
+if(r<rows && c<cols){
+sheets[currentSheet][r][c]=JSON.parse(JSON.stringify(item.data));
+}
+
+});
+
+build();
+calculateAll();
+saveSheets();
+
+}
+
+});
 </script>
 </body>
 </html>
