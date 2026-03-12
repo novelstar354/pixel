@@ -133,7 +133,9 @@ padding-bottom:3px;
 </div>
 
 <script>
-let rows=100, cols=30, colWidths = new Array(cols).fill(120); // 初期幅を少し広げる
+let rows = 100; // もともと 30
+let cols = 30;  // もともと 15
+let colWidths = new Array(cols).fill(120); // 初期幅を少し広げる
 let sheets=[], currentSheet=0;
 let sheetNames=[];
 let selectedCell=null, selectedRange=[];
@@ -463,6 +465,7 @@ function deleteCols() {
     saveSheets();
     clearSelect();
 }
+
 // ---------- 依存チェーン計算 ----------
 function parseCell(name){const col=name.match(/[A-Z]+/)[0]; const row=parseInt(name.match(/[0-9]+/)[0])-1; let c=0; for(let i=0;i<col.length;i++) c=c*26+(col.charCodeAt(i)-64); c--; return{r:row,c:c};}
 
