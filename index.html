@@ -62,9 +62,6 @@ padding-bottom:3px;
 <div id="sheetWrap">
 <table id="sheet"></table>
 </div>
-<td class="cell" contenteditable data-row="1" data-col="1"></td>
-<td class="cell" contenteditable data-row="1" data-col="2"></td>
-<td class="cell" contenteditable data-row="1" data-col="3"></td>
 <div id="sheets"></div>
 
 <!--<div id="functionPanel">
@@ -215,7 +212,14 @@ panel.appendChild(div);
 
 buildFunctionPanel();
 
-function colName(n){let s=""; while(n>=0){s=String.fromCharCode(n%26+65)+s; n=Math.floor(n/26)-1;} return s;}
+function colName(n){
+    let s="";
+    while(n>=0){
+        s=String.fromCharCode(n%26+65)+s;
+        n=Math.floor(n/26)-1;
+    }
+    return s;
+}
 
 function initSheet(){
   const data=[];
@@ -280,10 +284,10 @@ function build(){
 
       input.onfocus=()=>{selectedCell=input; formulaBar.value=cell.formula;}
       input.oninput=()=>{
-cell.formula=input.value;
-updateCell(r,c);
-calculateAll();   // 追加
-saveSheets();
+    cell.formula=input.value;
+    updateCell(r,c);
+    calculateAll();   // 追加
+    saveSheets();
 }
       input.onmousedown=()=>{clearSelect(); selectedRange=[input]; td.classList.add("selected");}
       input.onmouseover=e=>{if(e.buttons===1){selectedRange.push(input); td.classList.add("selected");}}
@@ -381,7 +385,7 @@ buildTabs();
 // ---------- 操作 ----------
 function addSheet(){initSheet(); build(); saveSheets();}
 function clearSelect(){document.querySelectorAll(".selected").forEach(e=>e.classList.remove("selected")); selectedRange=[];}
-function getCell(r,c){return document.querySelector(`input[data-r="${r}"][data-c="${c}`);}
+function getCell(r,c){return document.querySelector(`input[data-r="${r}"][data-c="${c}"]`);}
 function addRow() {
     // 上限チェックをなくす、または大きくする
     if (rows >= 1000) return; // 1000行まで許可
@@ -467,7 +471,17 @@ function deleteCols() {
 }
 
 // ---------- 依存チェーン計算 ----------
-function parseCell(name){const col=name.match(/[A-Z]+/)[0]; const row=parseInt(name.match(/[0-9]+/)[0])-1; let c=0; for(let i=0;i<col.length;i++) c=c*26+(col.charCodeAt(i)-64); c--; return{r:row,c:c};}
+function parseCell(name){
+    const colMatch=name.match(/[A-Z]+/);
+    const rowMatch=name.match(/[0-9]+/);
+    if(!colMatch || !rowMatch) return {r:0,c:0};
+    const col=colMatch[0];
+    const row=parseInt(rowMatch[0])-1;
+    let c=0;
+    for(let i=0;i<col.length;i++) c=c*26+(col.charCodeAt(i)-64);
+    c--;
+    return {r:row,c:c};
+}
 
 function getRange(a,b){
   const nums=[];
@@ -771,10 +785,9 @@ let expr=f.slice(1);
 
 // セル参照置き換え
 expr=expr.replace(/[A-Z]+[0-9]+/g,(ref)=>{
-const pos=parseCell(ref);
-return sheets[currentSheet][pos.r][pos.c].value || 0;
+    const pos=parseCell(ref);
+    return sheets[currentSheet][pos.r][pos.c].value || 0;
 });
-
 cell.value=eval(expr);
 
 }
@@ -912,6 +925,7 @@ document.addEventListener("keydown", function(e){
         selectedCell = next;
     }
 });
+
 </script>
 </body>
 </html>
