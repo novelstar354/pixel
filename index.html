@@ -10,8 +10,19 @@ body{margin:0;font-family:Segoe UI,Arial;background:#f1f3f4;}
   -webkit-user-select: none;}
 button{padding:6px 10px;}
 #formulaBar{width:100%;padding:6px;font-size:16px;border:none;box-sizing:border-box;}
-#sheetWrap{overflow:auto;height:70vh;}
-table{border-collapse:collapse;background:white;border:1px solid #cfcfcf;table-layout:fixed;}
+#sheetWrap {
+  overflow: auto;      /* 既にある */
+  height: 80vh;        /* 高さを増やすと見やすくなる */
+  width: 100vw;        /* 横幅いっぱいに広げる */
+  box-sizing: border-box;
+}
+table {
+  border-collapse: collapse;
+  background: white;
+  border: 1px solid #cfcfcf;
+  table-layout: fixed;    /* 固定列幅 */
+  min-width: max-content; /* はみ出る分は横スクロール */
+}
 th,td{border:1px solid #ccc;width:90px;height:28px;text-align:center;position:relative;}
 th{background:#f3f3f3;font-weight:normal;}
 td:hover{outline:1px solid #4a90e2;outline-offset:-1px;}
@@ -36,6 +47,8 @@ padding-bottom:3px;
 <div id="toolbar">
 <button onclick="addRow()">行+</button>
 <button onclick="addCol()">列+</button>
+<button onclick="deleteRows()">行削除</button>
+<button onclick="deleteCols()">列削除</button>
 <button onclick="undo()">Undo</button>
 <button onclick="redo()">Redo</button>
 <button onclick="addSheet()">シート+</button>
@@ -120,7 +133,7 @@ padding-bottom:3px;
 </div>
 
 <script>
-let rows=30, cols=15, colWidths=new Array(cols).fill(90);
+let rows=100, cols=30, colWidths = new Array(cols).fill(120); // 初期幅を少し広げる
 let sheets=[], currentSheet=0;
 let sheetNames=[];
 let selectedCell=null, selectedRange=[];
@@ -367,9 +380,89 @@ buildTabs();
 function addSheet(){initSheet(); build(); saveSheets();}
 function clearSelect(){document.querySelectorAll(".selected").forEach(e=>e.classList.remove("selected")); selectedRange=[];}
 function getCell(r,c){return document.querySelector(`input[data-r="${r}"][data-c="${c}`);}
-function addRow(){rows++; sheets.forEach(s=>{const row=[]; for(let c=0;c<cols;c++) row.push({formula:"",value:"",dependents:[]}); s.push(row);}); build(); saveSheets();}
-function addCol(){cols++; colWidths.push(90); sheets.forEach(s=>s.forEach(r=>r.push({formula:"",value:"",dependents:[]}))); build(); saveSheets();}
+function addRow() {
+    // 上限チェックをなくす、または大きくする
+    if (rows >= 1000) return; // 1000行まで許可
+    rows++;
+    sheets.forEach(s => {
+        const row = [];
+        for (let c = 0; c < cols; c++) row.push({formula:"", value:"", dependents:[]});
+        s.push(row);
+    });
+    build();
+    saveSheets();
+}
+function addCol() {
+    if (cols >= 100) return; // 100列まで許可
+    cols++;
+    colWidths.push(90);
+    sheets.forEach(s => s.forEach(r => r.push({formula:"", value:"", dependents:[]})));
+    build();
+    saveSheets();
+}
+function deleteRows() {
+    if (rows <= 1) {
+        alert("これ以上行を削除できません");
+        return;
+    }
 
+    if (selectedRange.length === 0) {
+        alert("削除する行を選択してください");
+        return;
+    }
+
+    // 選択セルから行番号を取得してユニークに
+    const rowsToDelete = [...new Set(selectedRange.map(input => parseInt(input.dataset.r)))].sort((a,b)=>b-a);
+    if(!confirm(`行 ${rowsToDelete.map(r=>r+1).join(", ")} を削除しますか？`)) return;
+
+    sheets.forEach(sheetData => {
+        rowsToDelete.forEach(r => {
+            if(sheetData.length > 1) sheetData.splice(r, 1);
+        });
+    });
+
+    rows -= rowsToDelete.length;
+    if(rows < 1) rows = 1;
+
+    build();
+    calculateAll();
+    saveSheets();
+    clearSelect();
+}
+function deleteCols() {
+    if (cols <= 1) {
+        alert("これ以上列を削除できません");
+        return;
+    }
+
+    if (selectedRange.length === 0) {
+        alert("削除する列を選択してください");
+        return;
+    }
+
+    // 選択セルから列番号を取得してユニークに
+    const colsToDelete = [...new Set(selectedRange.map(input => parseInt(input.dataset.c)))].sort((a,b)=>b-a);
+    if(!confirm(`列 ${colsToDelete.map(c=>colName(c)).join(", ")} を削除しますか？`)) return;
+
+    sheets.forEach(sheetData => {
+        sheetData.forEach(row => {
+            colsToDelete.forEach(c => {
+                if(row.length > 1) row.splice(c, 1);
+            });
+        });
+    });
+
+    cols -= colsToDelete.length;
+    if(cols < 1) cols = 1;
+
+    // 列幅も削除
+    colsToDelete.forEach(c => colWidths.splice(c, 1));
+
+    build();
+    calculateAll();
+    saveSheets();
+    clearSelect();
+}
 // ---------- 依存チェーン計算 ----------
 function parseCell(name){const col=name.match(/[A-Z]+/)[0]; const row=parseInt(name.match(/[0-9]+/)[0])-1; let c=0; for(let i=0;i<col.length;i++) c=c*26+(col.charCodeAt(i)-64); c--; return{r:row,c:c};}
 
