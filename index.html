@@ -116,6 +116,7 @@ input{width:100%;height:100%;border:none;outline:none;text-align:center;font-fam
 <div id="toolbar">
   <div class="excel-ribbon-panel active" id="excel-home">
     <button onclick="saveExcelAs()">名前を付けて保存</button>
+    <button onclick="saveExcel()">保存</button>
     <button onclick="openExcelFilePicker()">開く</button>
     <button onclick="addRow()">行+</button>
     <button onclick="addCol()">列+</button>
@@ -360,7 +361,10 @@ function downloadCurrentExcelFile(){
   a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
-
+function saveExcel(){
+    saveSheets();
+    flashExcel("保存しました");
+}
 function saveSheets(){
   // Excel自身の保存
   localStorage.setItem("excelJS_sheets", JSON.stringify(sheets));
